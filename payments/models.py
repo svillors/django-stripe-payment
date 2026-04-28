@@ -19,3 +19,7 @@ class Item(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def price_in_cents(self):
+        return int(self.price * 100)

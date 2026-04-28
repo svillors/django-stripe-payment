@@ -87,3 +87,9 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+
+STRIPE_SECRET_KEY = os.environ['STRIPE_SECRET_KEY']
+
+STRIPE_PUBLISHABLE_KEY = os.environ['STRIPE_PUBLISHABLE_KEY']
+
+DOMAIN = os.getenv('DOMAIN', 'http://127.0.0.1:8000')
