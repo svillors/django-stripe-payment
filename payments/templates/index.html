@@ -1,0 +1,108 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <title>Магазин</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'payments/css/styles.css' %}">
+</head>
+<body class="page-index">
+
+    <nav>
+        <div class="nav-inner">
+            <div class="nav-logo">Shop<span>·</span>Co</div>
+            <div class="nav-links">
+                <a href="#products">Товары</a>
+                <a href="#orders">Заказы</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="hero">
+        <div>
+            <h1 class="hero-title">Каталог<br>& <em>Заказы</em></h1>
+            <p class="hero-sub">Выберите товар и перейдите к оплате — всё в одном месте.</p>
+        </div>
+        <div class="hero-stat">
+            <div class="hero-stat-num">{{ items|length }}</div>
+            <div class="hero-stat-label">Товаров доступно</div>
+        </div>
+    </div>
+
+    <section class="section" id="products">
+        <div class="section-head">
+            <span class="section-label">Каталог</span>
+            <div class="section-line"></div>
+        </div>
+
+        {% if items %}
+        <div class="products-grid">
+            {% for item in items %}
+            <div class="product-card">
+                <span class="product-badge">Товар</span>
+                <div class="product-body">
+                    <h2 class="product-name">{{ item.name }}</h2>
+                    <p class="product-desc">{{ item.description }}</p>
+                </div>
+                <div class="product-footer">
+                    <div>
+                        <span class="product-price">{{ item.price }}</span>
+                        <span class="product-currency">{{ item.currency }}</span>
+                    </div>
+                    <a href="/item/{{ item.id }}/" class="product-btn">Купить</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="orders-card">
+            <div class="empty-state">Товары пока не добавлены</div>
+        </div>
+        {% endif %}
+    </section>
+
+    <section class="section section-spaced" id="orders">
+        <div class="section-head">
+            <span class="section-label">Заказы</span>
+            <div class="section-line"></div>
+        </div>
+
+        {% if orders %}
+        <div class="orders-card">
+            <table class="orders-table">
+                <thead>
+                    <tr>
+                        <th>Заказ</th>
+                        <th>Дата</th>
+                        <th>Товары</th>
+                        <th>Сумма</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td class="order-id">#{{ order.id }}</td>
+                        <td class="table-muted">{{ order.created_at|date:"d.m.Y" }}</td>
+                        <td class="table-muted">{{ order.items_count }} шт.</td>
+                        <td class="order-total">
+                            {{ order.total_price }}
+                            <span class="order-total-currency">{{ order.currency }}</span>
+                        </td>
+                        <td>
+                            <a href="/order/{{ order.id }}/" class="order-link">Оплатить</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="orders-card">
+            <div class="empty-state">Заказов пока нет</div>
+        </div>
+        {% endif %}
+    </section>
+
+</body>
+</html>

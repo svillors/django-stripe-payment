@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.db.models import Count
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET
@@ -113,4 +114,15 @@ def buy_order(request, order_id):
 
     return JsonResponse({
         'session_id': session.id,
+    })
+
+
+@require_GET
+def main_page(request):
+    items = Item.objects.all()
+    orders = Order.objects.annotate(items_count=Count('items'))
+
+    return render(request, 'index.html', {
+        'items': items,
+        'orders': orders,
     })

@@ -1,50 +1,105 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <title>Order #{{ order.id }}</title>
     <script src="https://js.stripe.com/v3/"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'payments/css/styles.css' %}">
 </head>
-<body>
-    <h1>Order #{{ order.id }}</h1>
+<body class="page-order">
+    <div class="order-wrapper">
 
-    {% if order_error %}
-        <p id="payment-error">{{ order_error }}</p>
-    {% else %}
-        <p id="payment-error"></p>
-    {% endif %}
+        <div class="order-header">
+            <div>
+                <p class="order-eyebrow">Ваш заказ</p>
+                <h1 class="order-title">#{{ order.id }}</h1>
+            </div>
+            <span class="order-badge">Ожидает оплаты</span>
+        </div>
 
-    {% for order_item in order_items %}
-        <p>{{ order_item.item.name }}</p>
-        <p>{{ order_item.item.description }}</p>
-        <p>Цена: {{ order_item.item.price }} {{ order_item.item.currency }} x {{ order_item.quantity }}</p>
-    {% endfor %}
+        {% if order_error %}
+        <div class="error-banner" id="payment-error">
+            <span>⚠</span>
+            <span>{{ order_error }}</span>
+        </div>
+        {% else %}
+        <div class="error-banner hidden" id="payment-error">
+            <span>⚠</span>
+            <span></span>
+        </div>
+        {% endif %}
 
-    {% if not order_error %}
-        <p>Цена: {{ order.total_price }} {{ order_currency }}</p>
-    {% endif %}
+        <div class="card">
+            <div class="corner-mark"></div>
 
-    <button id="buy-button" {% if order_error %}disabled{% endif %}>Buy</button>
+            <div class="items-header">Состав заказа</div>
+
+            {% for order_item in order_items %}
+            <div class="order-item">
+                <div class="item-name">{{ order_item.item.name }}</div>
+                <div class="item-price-cell">
+                    <div class="item-price-amount">
+                        {{ order_item.item.price|floatformat:2 }}
+                        <span class="price-inline-currency">{{ order_item.item.currency }}</span>
+                    </div>
+                    <div class="item-price-detail">× {{ order_item.quantity }}</div>
+                </div>
+                <div class="item-desc">{{ order_item.item.description }}</div>
+            </div>
+            {% endfor %}
+
+            {% if not order_error %}
+            <div class="total-row">
+                <span class="total-label">Итого</span>
+                <div>
+                    <span class="total-value">{{ order.total_price }}</span>
+                    <span class="total-currency">{{ order_currency }}</span>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card-footer">
+                <button class="buy-button" id="buy-button" {% if order_error %}disabled{% endif %}>
+                    <span>Оплатить заказ</span>
+                </button>
+                <p class="secure-note">🔒 Безопасная оплата через Stripe</p>
+            </div>
+        </div>
+    </div>
 
     <script>
         const stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
         const buyButton = document.getElementById('buy-button');
-        const paymentError = document.getElementById('payment-error');
+        const errorBanner = document.getElementById('payment-error');
+        const errorText = errorBanner.querySelector('span:last-child');
+
+        function showError(msg) {
+            errorText.textContent = msg;
+            errorBanner.classList.remove('hidden');
+        }
 
         buyButton.addEventListener('click', async () => {
-            const response = await fetch("{% url 'buy_order' order.id %}");
-            const data = await response.json();
+            buyButton.disabled = true;
+            buyButton.querySelector('span').textContent = 'Обработка…';
 
-            if (!response.ok) {
-                paymentError.textContent = data.error || 'Payment error';
-                return;
-            }
+            try {
+                const response = await fetch("{% url 'buy_order' order.id %}");
+                const data = await response.json();
 
-            const result = await stripe.redirectToCheckout({
-                sessionId: data.session_id
-            });
+                if (!response.ok) {
+                    showError(data.error || 'Ошибка оплаты');
+                    return;
+                }
 
-            if (result.error) {
-                paymentError.textContent = result.error.message;
+                const result = await stripe.redirectToCheckout({ sessionId: data.session_id });
+                if (result.error) showError(result.error.message);
+
+            } catch (e) {
+                showError('Ошибка соединения. Попробуйте ещё раз.');
+            } finally {
+                buyButton.disabled = false;
+                buyButton.querySelector('span').textContent = 'Оплатить заказ';
             }
         });
     </script>
