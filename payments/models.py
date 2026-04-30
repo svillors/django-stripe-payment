@@ -28,7 +28,35 @@ class Item(models.Model):
         return int(self.price * 100)
 
 
+class Discount(models.Model):
+    name = models.CharField('Name', max_length=100)
+    stripe_coupon_id = models.CharField('Stripe coupon id', max_length=255)
+
+    def __str__(self):
+        return self.name
+
+
+class Tax(models.Model):
+    name = models.CharField('Name', max_length=100)
+    stripe_tax_rate_id = models.CharField('Stripe tax rate id', max_length=255)
+
+    def __str__(self):
+        return self.name
+
+
 class Order(models.Model):
+    discount = models.ForeignKey(
+        Discount,
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+    )
+    tax = models.ForeignKey(
+        Tax,
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

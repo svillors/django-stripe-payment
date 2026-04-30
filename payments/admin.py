@@ -2,12 +2,22 @@ from django.contrib import admin
 from django.core.exceptions import ValidationError
 from django.forms.models import BaseInlineFormSet
 
-from .models import Item, Order, OrderItem
+from .models import Discount, Item, Order, OrderItem, Tax
 
 
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
     list_display = ('name', 'price', 'currency')
+
+
+@admin.register(Discount)
+class DiscountAdmin(admin.ModelAdmin):
+    list_display = ('name', 'stripe_coupon_id')
+
+
+@admin.register(Tax)
+class TaxAdmin(admin.ModelAdmin):
+    list_display = ('name', 'stripe_tax_rate_id')
 
 
 class OrderItemInlineFormSet(BaseInlineFormSet):
@@ -42,4 +52,4 @@ class OrderItemInline(admin.TabularInline):
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     inlines = (OrderItemInline,)
-    list_display = ('id', 'created_at')
+    list_display = ('id', 'discount', 'tax', 'created_at')

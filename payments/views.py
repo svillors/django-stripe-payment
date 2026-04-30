@@ -11,8 +11,8 @@ from .models import Item, Order
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
-def build_line_item(item, quantity=1):
-    return {
+def build_line_item(item, quantity=1, tax=None):
+    line_item = {
         'price_data': {
             'currency': item.currency,
             'product_data': {
@@ -23,6 +23,12 @@ def build_line_item(item, quantity=1):
         },
         'quantity': quantity,
     }
+
+    if tax:
+        line_item['price_data']['tax_behavior'] = 'exclusive'
+        line_item['tax_rates'] = [tax.stripe_tax_rate_id]
+
+    return line_item
 
 
 @require_GET
@@ -79,21 +85,31 @@ def order_detail(request, order_id):
 
 @require_GET
 def buy_order(request, order_id):
-    order = get_object_or_404(Order, pk=order_id)
+    order = get_object_or_404(
+        Order.objects.select_related('discount', 'tax'),
+        pk=order_id
+    )
     order_items = list(order.items.select_related('item').order_by('id'))
 
     line_items = [
-        build_line_item(order_item.item, order_item.quantity)
+        build_line_item(order_item.item, order_item.quantity, order.tax)
         for order_item in order_items
     ]
 
-    session = stripe.checkout.Session.create(
-        payment_method_types=['card'],
-        line_items=line_items,
-        mode='payment',
-        success_url=f'{settings.DOMAIN}/success/',
-        cancel_url=f'{settings.DOMAIN}/cancel/',
-    )
+    session_data = {
+        'payment_method_types': ['card'],
+        'line_items': line_items,
+        'mode': 'payment',
+        'success_url': f'{settings.DOMAIN}/success/',
+        'cancel_url': f'{settings.DOMAIN}/cancel/',
+    }
+
+    if order.discount:
+        session_data['discounts'] = [
+            {'coupon': order.discount.stripe_coupon_id},
+        ]
+
+    session = stripe.checkout.Session.create(**session_data)
 
     return JsonResponse({
         'session_id': session.id,
