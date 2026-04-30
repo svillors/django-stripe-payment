@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Order #{{ order.id }}</title>
+    <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+    <h1>Order #{{ order.id }}</h1>
+
+    {% if order_error %}
+        <p id="payment-error">{{ order_error }}</p>
+    {% else %}
+        <p id="payment-error"></p>
+    {% endif %}
+
+    {% for order_item in order_items %}
+        <p>{{ order_item.item.name }}</p>
+        <p>{{ order_item.item.description }}</p>
+        <p>Цена: {{ order_item.item.price }} {{ order_item.item.currency }} x {{ order_item.quantity }}</p>
+    {% endfor %}
+
+    {% if not order_error %}
+        <p>Цена: {{ order.total_price }} {{ order_currency }}</p>
+    {% endif %}
+
+    <button id="buy-button" {% if order_error %}disabled{% endif %}>Buy</button>
+
+    <script>
+        const stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
+        const buyButton = document.getElementById('buy-button');
+        const paymentError = document.getElementById('payment-error');
+
+        buyButton.addEventListener('click', async () => {
+            const response = await fetch("{% url 'buy_order' order.id %}");
+            const data = await response.json();
+
+            if (!response.ok) {
+                paymentError.textContent = data.error || 'Payment error';
+                return;
+            }
+
+            const result = await stripe.redirectToCheckout({
+                sessionId: data.session_id
+            });
+
+            if (result.error) {
+                paymentError.textContent = result.error.message;
+            }
+        });
+    </script>
+</body>
+</html>
