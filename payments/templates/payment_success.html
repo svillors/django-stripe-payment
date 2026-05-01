@@ -1,0 +1,76 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <title>Оплата прошла успешно</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'payments/css/styles.css' %}">
+</head>
+<body class="page-success">
+
+    <div class="icon-wrap">
+        <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle class="check-circle" cx="40" cy="40" r="34"
+                stroke="#1a5c37" stroke-width="2.5"
+                fill="none" stroke-linecap="round"/>
+            <polyline class="check-mark"
+                points="24,41 35,52 57,30"
+                stroke="#1a5c37" stroke-width="3"
+                fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </div>
+
+    <div class="card">
+        <div class="corner-mark"></div>
+
+        <div class="card-header">
+            <span class="status-badge">Оплачено</span>
+            <h1 class="card-title">Спасибо за<br>покупку!</h1>
+            <p class="card-subtitle">Платёж прошёл успешно. Детали отправлены<br>на ваш email.</p>
+        </div>
+
+        <div class="card-body">
+            {% if payment_id %}
+            <div class="detail-row">
+                <span class="detail-label">ID платежа</span>
+                <span class="detail-val plain">{{ payment_id }}</span>
+            </div>
+            {% endif %}
+
+            {% if payment_description %}
+            <div class="detail-row">
+                <span class="detail-label">Описание</span>
+                <span class="detail-val plain">{{ payment_description }}</span>
+            </div>
+            {% endif %}
+
+            {% if customer_email %}
+            <div class="detail-row">
+                <span class="detail-label">Email</span>
+                <span class="detail-val plain">{{ customer_email }}</span>
+            </div>
+            {% endif %}
+
+            {% if paid_at %}
+            <div class="detail-row">
+                <span class="detail-label">Дата</span>
+                <span class="detail-val plain">{{ paid_at|date:"d.m.Y, H:i" }}</span>
+            </div>
+            {% endif %}
+
+            <div class="detail-row">
+                <span class="detail-label">Сумма</span>
+                <span class="detail-val amount">
+                    {{ amount }}
+                    <span class="detail-currency">{{ currency }}</span>
+                </span>
+            </div>
+        </div>
+
+        <div class="card-footer">
+            <a href="{% url 'main_page' %}" class="btn-primary"><span>На главную</span></a>
+        </div>
+    </div>
+
+</body>
+</html>

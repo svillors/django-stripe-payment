@@ -210,7 +210,9 @@
                     btnLabel.textContent = '✓ Оплачено';
                     submitBtn.classList.add('success');
                     setTimeout(() => {
-                        window.location.href = '/success/';
+                        const successUrl = new URL("{% url 'payment_success' %}", window.location.origin);
+                        successUrl.searchParams.set('payment_intent', paymentIntent.id);
+                        window.location.href = successUrl.toString();
                     }, 800);
                 }
 

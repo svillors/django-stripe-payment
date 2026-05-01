@@ -1,4 +1,3 @@
-from django.http import HttpResponse
 from django.urls import path
 
 from .views import (
@@ -9,6 +8,7 @@ from .views import (
     item_detail,
     main_page,
     order_detail,
+    payment_success,
 )
 
 urlpatterns = [
@@ -19,6 +19,5 @@ urlpatterns = [
     path('order/<int:order_id>/', order_detail, name='order_detail'),
     path('order/<int:order_id>/checkout/', checkout_order, name='checkout_order'),
     path('buy_order/<int:order_id>/', buy_order, name='buy_order'),
-    path('success/', lambda _: HttpResponse("Payment success")),
-    path('cancel/', lambda _: HttpResponse("Payment canceled")),
+    path('success/', payment_success, name='payment_success'),
 ]

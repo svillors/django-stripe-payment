@@ -8,26 +8,30 @@
     <link rel="stylesheet" href="{% static 'payments/css/styles.css' %}">
 </head>
 <body class="page-detail">
-    <div class="card">
-        <div class="corner-mark"></div>
-        <div class="card-header">
-            <span class="card-label">Товар</span>
-            <h1 class="item-name">{{ item.name }}</h1>
-        </div>
-        <div class="card-body">
-            <p class="item-description">{{ item.description }}</p>
-            <div class="divider"></div>
-            <div class="price-row">
-                <span class="price-label">Цена</span>
-                <span class="price-value">{{ item.price }}</span>
-                <span class="price-currency">{{ item.currency }}</span>
+    <div class="page-item-wrapper">
+        <a href="{% url 'main_page' %}" class="nav-back back-link">← На главную</a>
+
+        <div class="card">
+            <div class="corner-mark"></div>
+            <div class="card-header">
+                <span class="card-label">Товар</span>
+                <h1 class="item-name">{{ item.name }}</h1>
             </div>
-        </div>
-        <div class="card-footer">
-            <button class="buy-button" id="buy-button">
-                <span>Купить сейчас</span>
-            </button>
-            <p class="secure-note">🔒 Безопасная оплата через Stripe</p>
+            <div class="card-body">
+                <p class="item-description">{{ item.description }}</p>
+                <div class="divider"></div>
+                <div class="price-row">
+                    <span class="price-label">Цена</span>
+                    <span class="price-value">{{ item.price }}</span>
+                    <span class="price-currency">{{ item.currency }}</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <button class="buy-button" id="buy-button">
+                    <span>Купить сейчас</span>
+                </button>
+                <p class="secure-note">🔒 Безопасная оплата через Stripe</p>
+            </div>
         </div>
     </div>
 

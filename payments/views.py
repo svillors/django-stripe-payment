@@ -1,7 +1,10 @@
+from datetime import datetime
+
 from django.conf import settings
 from django.db.models import Count
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
 from django.views.decorators.http import require_GET
 
 import stripe
@@ -152,6 +155,36 @@ def buy_order(request, order_id):
         return JsonResponse({
             'error': str(e),
         }, status=400)
+
+
+@require_GET
+def payment_success(request):
+    payment_intent_id = request.GET['payment_intent']
+    intent_data = stripe.PaymentIntent.retrieve(payment_intent_id).to_dict()
+    metadata = intent_data['metadata']
+
+    if metadata.get('order_id'):
+        payment_object = get_object_or_404(Order, pk=metadata['order_id'])
+        description = f'Заказ #{payment_object.id}'
+        amount = payment_object.total_price
+        currency = payment_object.currency
+    else:
+        payment_object = get_object_or_404(Item, pk=metadata['item_id'])
+        description = payment_object.name
+        amount = payment_object.price
+        currency = payment_object.currency
+
+    return render(request, 'payment_success.html', {
+        'payment_id': payment_intent_id,
+        'payment_description': description,
+        'customer_email': metadata.get('customer_email', ''),
+        'paid_at': datetime.fromtimestamp(
+            intent_data['created'],
+            tz=timezone.get_current_timezone(),
+        ),
+        'amount': amount,
+        'currency': currency.upper(),
+    })
 
 
 @require_GET
