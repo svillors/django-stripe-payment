@@ -1,0 +1,228 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <title>Оплата — Order #{{ order.id }}</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'payments/css/styles.css' %}">
+</head>
+<body class="page-checkout">
+
+    <nav>
+        <div class="nav-inner">
+            <div class="nav-logo">Shop<span>·</span>Co</div>
+            <a href="/" class="nav-back">← Назад</a>
+        </div>
+    </nav>
+
+    <div class="checkout-layout">
+
+        <div class="panel">
+            <div class="corner-mark"></div>
+            <div class="panel-header">
+                <p class="panel-eyebrow">Оформление</p>
+                <h1 class="panel-title">Данные оплаты</h1>
+            </div>
+            <div class="panel-body">
+
+                <div class="form-section">
+                    <div class="form-section-label">Контактная информация</div>
+                    <div class="field-group">
+                        <div class="field full">
+                            <label for="name">Имя и фамилия</label>
+                            <input type="text" id="name" name="name" placeholder="Иван Иванов" autocomplete="name">
+                        </div>
+                        <div class="field full">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email">
+                        </div>
+                        <div class="field full">
+                            <label for="country">Страна</label>
+                            <div class="select-wrap">
+                                <select id="country" name="country" autocomplete="country">
+                                    <option value="">Выберите страну…</option>
+                                    <option value="RU">🇷🇺 Россия</option>
+                                    <option value="US">🇺🇸 США</option>
+                                    <option value="DE">🇩🇪 Германия</option>
+                                    <option value="GB">🇬🇧 Великобритания</option>
+                                    <option value="FR">🇫🇷 Франция</option>
+                                    <option value="KZ">🇰🇿 Казахстан</option>
+                                    <option value="BY">🇧🇾 Беларусь</option>
+                                    <option value="UA">🇺🇦 Украина</option>
+                                    <option value="ES">🇪🇸 Испания</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-label">Платёжная карта</div>
+                    <div class="field">
+                        <label>Данные карты</label>
+                        <div class="card-element-wrap" id="card-element-wrap">
+                            <div id="card-element"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="error-msg {% if order_error %}visible{% endif %}" id="payment-error">
+                    <span>⚠</span>
+                    <span id="error-text">{{ order_error }}</span>
+                </div>
+
+                <button class="submit-btn" id="submit-btn" {% if order_error %}disabled{% endif %}>
+                    <span id="btn-label">Оплатить</span>
+                </button>
+                <p class="secure-note">🔒 Платёж защищён Stripe. Данные карты не хранятся.</p>
+            </div>
+        </div>
+
+        <div class="panel panel-right">
+            <div class="panel-header">
+                <p class="panel-eyebrow">Заказ #{{ order.id }}</p>
+                <h2 class="panel-title">Ваши товары</h2>
+            </div>
+
+            <div class="summary-items">
+                {% for order_item in order_items %}
+                <div class="summary-item">
+                    <div class="si-name">{{ order_item.item.name }}</div>
+                    <div class="si-amount">
+                        {{ order_item.item.price }}
+                        <span class="si-currency">{{ order_item.item.currency }}</span>
+                    </div>
+                    <div class="si-meta">{{ order_item.item.description|truncatechars:50 }} · ×{{ order_item.quantity }}</div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="summary-totals">
+
+                <div class="totals-row subtotal">
+                    <span class="totals-label">Подытог</span>
+                    <span class="totals-val">{{ order.subtotal }} <span class="totals-currency">{{ order_currency }}</span></span>
+                </div>
+
+                {% if order.discount %}
+                <div class="totals-row discount">
+                    <span class="totals-label">Скидка ({{ order.discount.name }})</span>
+                    <span class="totals-val">{{ order.discount_amount }} <span class="totals-currency">{{ order_currency }}</span></span>
+                </div>
+                {% endif %}
+
+                {% if order.tax %}
+                <div class="totals-row tax">
+                    <span class="totals-label">Налог ({{ order.tax.percentage }}%)</span>
+                    <span class="totals-val">{{ order.tax_amount }} <span class="totals-currency">{{ order_currency }}</span></span>
+                </div>
+                {% endif %}
+
+                <div class="totals-divider"></div>
+
+                <div class="totals-row total">
+                    <span class="totals-label">Итого</span>
+                    <span class="totals-val">
+                        {{ order.total_price }}
+                        <span class="totals-currency">{{ order_currency }}</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
+        const elements = stripe.elements();
+
+        const cardElement = elements.create('card', {
+            style: {
+                base: {
+                    fontFamily: '"DM Sans", sans-serif',
+                    fontSize: '15px',
+                    color: '#0f0e0d',
+                    '::placeholder': { color: '#b0a89a' },
+                    iconColor: '#7a7068',
+                },
+                invalid: { color: '#9e2a0e', iconColor: '#c8571a' }
+            }
+        });
+
+        cardElement.mount('#card-element');
+
+        const wrap = document.getElementById('card-element-wrap');
+        cardElement.on('focus', () => wrap.classList.add('focused'));
+        cardElement.on('blur', () => wrap.classList.remove('focused'));
+
+        const submitBtn = document.getElementById('submit-btn');
+        const btnLabel = document.getElementById('btn-label');
+        const errorBox = document.getElementById('payment-error');
+        const errorText = document.getElementById('error-text');
+
+        function showError(msg) {
+            errorText.textContent = msg;
+            errorBox.classList.add('visible');
+        }
+
+        function hideError() {
+            errorBox.classList.remove('visible');
+        }
+
+        submitBtn.addEventListener('click', async () => {
+            hideError();
+
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const country = document.getElementById('country').value;
+
+            if (!name) { showError('Введите имя и фамилию'); return; }
+            if (!email) { showError('Введите email'); return; }
+            if (!country) { showError('Выберите страну'); return; }
+
+            submitBtn.disabled = true;
+            btnLabel.textContent = 'Обработка…';
+
+            try {
+                const params = new URLSearchParams({ name, email, country });
+                const intentRes = await fetch(`{% url 'buy_order' order.id %}?${params}`);
+
+                const intentData = await intentRes.json();
+
+                if (!intentRes.ok) {
+                    showError(intentData.error || 'Ошибка создания платежа');
+                    return;
+                }
+
+                const { error, paymentIntent } = await stripe.confirmCardPayment(
+                    intentData.client_secret, {
+                        payment_method: {
+                            card: cardElement,
+                            billing_details: { name, email, address: { country } }
+                        }
+                    }
+                );
+
+                if (error) {
+                    showError(error.message);
+                } else if (paymentIntent.status === 'succeeded') {
+                    btnLabel.textContent = '✓ Оплачено';
+                    submitBtn.classList.add('success');
+                    setTimeout(() => {
+                        window.location.href = '/success/';
+                    }, 800);
+                }
+
+            } catch (e) {
+                showError('Ошибка соединения. Попробуйте ещё раз.');
+            } finally {
+                if (btnLabel.textContent !== '✓ Оплачено') {
+                    submitBtn.disabled = false;
+                    btnLabel.textContent = 'Оплатить';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

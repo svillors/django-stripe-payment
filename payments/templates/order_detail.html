@@ -3,7 +3,6 @@
 <html lang="ru">
 <head>
     <title>Order #{{ order.id }}</title>
-    <script src="https://js.stripe.com/v3/"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'payments/css/styles.css' %}">
 </head>
@@ -69,38 +68,13 @@
     </div>
 
     <script>
-        const stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
         const buyButton = document.getElementById('buy-button');
-        const errorBanner = document.getElementById('payment-error');
-        const errorText = errorBanner.querySelector('span:last-child');
 
-        function showError(msg) {
-            errorText.textContent = msg;
-            errorBanner.classList.remove('hidden');
-        }
-
-        buyButton.addEventListener('click', async () => {
+        buyButton.addEventListener('click', () => {
             buyButton.disabled = true;
             buyButton.querySelector('span').textContent = 'Обработка…';
 
-            try {
-                const response = await fetch("{% url 'buy_order' order.id %}");
-                const data = await response.json();
-
-                if (!response.ok) {
-                    showError(data.error || 'Ошибка оплаты');
-                    return;
-                }
-
-                const result = await stripe.redirectToCheckout({ sessionId: data.session_id });
-                if (result.error) showError(result.error.message);
-
-            } catch (e) {
-                showError('Ошибка соединения. Попробуйте ещё раз.');
-            } finally {
-                buyButton.disabled = false;
-                buyButton.querySelector('span').textContent = 'Оплатить заказ';
-            }
+            window.location.href = "{% url 'checkout_order' order.id %}";
         });
     </script>
 </body>

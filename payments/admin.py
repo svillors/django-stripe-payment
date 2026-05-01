@@ -12,12 +12,12 @@ class ItemAdmin(admin.ModelAdmin):
 
 @admin.register(Discount)
 class DiscountAdmin(admin.ModelAdmin):
-    list_display = ('name', 'stripe_coupon_id')
+    list_display = ('name', 'type', 'value')
 
 
 @admin.register(Tax)
 class TaxAdmin(admin.ModelAdmin):
-    list_display = ('name', 'stripe_tax_rate_id')
+    list_display = ('name', 'percentage')
 
 
 class OrderItemInlineFormSet(BaseInlineFormSet):

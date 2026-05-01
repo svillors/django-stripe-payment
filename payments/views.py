@@ -12,26 +12,6 @@ from .models import Item, Order
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
-def build_line_item(item, quantity=1, tax=None):
-    line_item = {
-        'price_data': {
-            'currency': item.currency,
-            'product_data': {
-                'name': item.name,
-                'description': item.description,
-            },
-            'unit_amount': int(item.price_in_cents),
-        },
-        'quantity': quantity,
-    }
-
-    if tax:
-        line_item['price_data']['tax_behavior'] = 'exclusive'
-        line_item['tax_rates'] = [tax.stripe_tax_rate_id]
-
-    return line_item
-
-
 @require_GET
 def item_detail(request, item_id):
     item = get_object_or_404(Item, id=item_id)
@@ -100,6 +80,30 @@ def order_detail(request, order_id):
         'order_items': order_items,
         'order_currency': order_currency,
         'order_error': order_error,
+    })
+
+
+@require_GET
+def checkout_order(request, order_id):
+    order = get_object_or_404(Order, pk=order_id)
+    order_items = list(order.items.select_related('item'))
+    currencies = {order_item.item.currency for order_item in order_items}
+
+    order_error = None
+    order_currency = None
+
+    if not order_items:
+        order_error = 'Order must contain at least one item.'
+    elif len(currencies) > 1:
+        order_error = 'All items in order must have the same currency.'
+    else:
+        order_currency = currencies.pop()
+
+    return render(request, 'order_checkout.html', {
+        'order': order,
+        'order_items': order_items,
+        'order_currency': order_currency,
+        'order_error': order_error,
         'STRIPE_PUBLIC_KEY': settings.STRIPE_PUBLISHABLE_KEY,
     })
 
@@ -112,29 +116,42 @@ def buy_order(request, order_id):
     )
     order_items = list(order.items.select_related('item').order_by('id'))
 
-    line_items = [
-        build_line_item(order_item.item, order_item.quantity, order.tax)
-        for order_item in order_items
-    ]
+    currencies = {order_item.item.currency for order_item in order_items}
 
-    session_data = {
-        'payment_method_types': ['card'],
-        'line_items': line_items,
-        'mode': 'payment',
-        'success_url': f'{settings.DOMAIN}/success/',
-        'cancel_url': f'{settings.DOMAIN}/cancel/',
-    }
+    if not order_items:
+        return JsonResponse({'error': 'Order must contain at least one item.'}, status=400)
 
-    if order.discount:
-        session_data['discounts'] = [
-            {'coupon': order.discount.stripe_coupon_id},
-        ]
+    if len(currencies) > 1:
+        return JsonResponse({
+            'error': 'All items in order must have the same currency.',
+        }, status=400)
 
-    session = stripe.checkout.Session.create(**session_data)
+    order_currency = currencies.pop()
 
-    return JsonResponse({
-        'session_id': session.id,
-    })
+    try:
+        intent = stripe.PaymentIntent.create(
+            amount=int(order.total_price * 100),
+            currency=order_currency.lower(),
+            payment_method_types=['card'],
+            metadata={
+                'order_id': str(order.id),
+                'customer_name': request.GET.get('name', ''),
+                'customer_email': request.GET.get('email', ''),
+                'customer_country': request.GET.get('country', ''),
+                'subtotal': str(order.subtotal),
+                'discount_amount': str(order.discount_amount),
+                'tax_amount': str(order.tax_amount),
+            },
+        )
+
+        return JsonResponse({
+            'client_secret': intent.client_secret,
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'error': str(e),
+        }, status=400)
 
 
 @require_GET
