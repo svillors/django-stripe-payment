@@ -38,6 +38,15 @@ def item_detail(request, item_id):
 
     return render(request, 'item_detail.html', {
         'item': item,
+    })
+
+
+@require_GET
+def checkout_item(request, item_id):
+    item = get_object_or_404(Item, pk=item_id)
+
+    return render(request, 'item_checkout.html', {
+        'item': item,
         'STRIPE_PUBLIC_KEY': settings.STRIPE_PUBLISHABLE_KEY,
     })
 
@@ -46,17 +55,28 @@ def item_detail(request, item_id):
 def buy_item(request, item_id):
     item = get_object_or_404(Item, pk=item_id)
 
-    session = stripe.checkout.Session.create(
-        payment_method_types=['card'],
-        line_items=[build_line_item(item)],
-        mode='payment',
-        success_url=f'{settings.DOMAIN}/success/',
-        cancel_url=f'{settings.DOMAIN}/cancel/',
-    )
+    try:
+        intent = stripe.PaymentIntent.create(
+            amount=int(item.price_in_cents),
+            currency=item.currency.lower(),
+            payment_method_types=['card'],
+            metadata={
+                'item_id': str(item.id),
+                'item_name': item.name,
+                'customer_name': request.GET.get('name', ''),
+                'customer_email': request.GET.get('email', ''),
+                'customer_country': request.GET.get('country', ''),
+            },
+        )
 
-    return JsonResponse({
-        'session_id': session.id,
-    })
+        return JsonResponse({
+            'client_secret': intent.client_secret,
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'error': str(e),
+        }, status=400)
 
 
 @require_GET

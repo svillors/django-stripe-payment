@@ -24,27 +24,21 @@
             </div>
         </div>
         <div class="card-footer">
-            <button class="buy-button" id="buy-button"><span>Купить сейчас</span></button>
+            <button class="buy-button" id="buy-button">
+                <span>Купить сейчас</span>
+            </button>
             <p class="secure-note">🔒 Безопасная оплата через Stripe</p>
         </div>
     </div>
 
     <script>
-        const stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
         const btn = document.getElementById('buy-button');
 
-        btn.addEventListener('click', async () => {
+        btn.addEventListener('click', () => {
             btn.classList.add('loading');
             btn.disabled = true;
-            try {
-                const response = await fetch('/buy/{{ item.id }}/');
-                const data = await response.json();
-                const result = await stripe.redirectToCheckout({ sessionId: data.session_id });
-                if (result.error) console.error(result.error.message);
-            } finally {
-                btn.classList.remove('loading');
-                btn.disabled = false;
-            }
+
+            window.location.href = "{% url 'checkout_item' item.id %}";
         });
     </script>
 </body>
